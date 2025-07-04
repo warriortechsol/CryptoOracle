@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: crypto-oracle-backend
+    env: python
+    pythonVersion: 3.10
+    repo: https://github.com/warriortechsol/CryptoOracle
+    branch: main
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    autoDeploy: true
+
+
