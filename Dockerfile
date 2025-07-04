@@ -1,24 +1,34 @@
-# Base Python image
-FROM python:3.11-slim
+# 🐍 Base Python image
+FROM python:3.10-slim
 
-# Set working directory
+# 🔧 Install system-level dependencies for pandas/numpy/nltk
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    g++ \
+    python3-dev \
+    libffi-dev \
+    libssl-dev \
+    libpq-dev \
+    curl \
+    wget \
+    git
+
+# 💼 Set working directory
 WORKDIR /app
 
-# Install system dependencies (optional: for textblob, nltk)
-RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
-
-# Copy backend code
-COPY backend/ ./backend/
-COPY backend/requirements.txt ./
-
-# Install Python dependencies
+# 📦 Upgrade pip and install Python dependencies
+COPY backend/requirements.txt .
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Download NLTK corpora for sentiment
-RUN python3 -m textblob.download_corpora
+# 🧠 Copy source code
+COPY backend/ .
 
-# Expose the port FastAPI will run on
-EXPOSE 8000
+# 📚 Download NLTK corpora (optional but useful for sentiment analysis)
+RUN python -m nltk.downloader vader_lexicon
+RUN python -m nltk.downloader punkt
 
-# Start FastAPI server
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 🚀 Run FastAPI app using Uvicorn
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+
