@@ -23,7 +23,7 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 🧠 Copy source code
-COPY backend/ .
+COPY backend/ ./backend/ 
 
 # 📚 Download NLTK corpora (optional but useful for sentiment analysis)
 RUN python -m nltk.downloader vader_lexicon
