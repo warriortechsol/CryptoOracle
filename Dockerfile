@@ -30,5 +30,6 @@ RUN python -m nltk.downloader vader_lexicon
 RUN python -m nltk.downloader punkt
 
 # 🚀 Run FastAPI app using Uvicorn
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8080"]
+
 
