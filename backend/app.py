@@ -1,5 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from backend.predictor import predict_price
 from backend.sentiment import get_sentiment_score
@@ -7,26 +10,39 @@ from backend.recommender import get_recommendation
 
 app = FastAPI()
 
-# ✅ CORS setup for frontend connection
+# 🔐 CORS setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 🔐 Consider restricting in production
+    allow_origins=["*"],  # Replace with specific domain in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
 )
 
-# ✅ Root handler (optional but helpful)
+# 🛡️ Validation error handler
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    print(f"[VALIDATION ERROR] {exc}")
+    return JSONResponse(
+        status_code=422,
+        content=jsonable_encoder({"detail": exc.errors()})
+    )
+
+# 🫀 Health check
 @app.get("/")
-def root():
-    return {"message": "CryptoOracle backend is online."}
+async def root():
+    return { "message": "CryptoOracle backend is online." }
 
-# ✅ Favicon fallback (optional)
-@app.get("/favicon.ico")
-def favicon():
-    return {"message": "No favicon here — this is an API."}
+# 🧪 Debug route to inspect files (optional)
+@app.get("/debug/files")
+async def debug_files():
+    import os
+    return {
+        "models": os.listdir("models") if os.path.exists("models") else "models folder missing",
+        "data": os.listdir("backend/data") if os.path.exists("backend/data") else "data folder missing"
+    }
 
-# ✅ Pydantic models
+# 📦 Request models
 class PredictionRequest(BaseModel):
     symbol: str
     current_price: float
@@ -38,10 +54,11 @@ class RecommendationRequest(BaseModel):
     predicted_price: float
     current_price: float
 
-# ✅ Predict endpoint
+# 🔮 Prediction route
 @app.post("/predict")
-def predict_route(payload: PredictionRequest):
+async def predict_route(payload: PredictionRequest):
     try:
+        print(f"[ROUTE] /predict received: {payload}")
         predicted = predict_price(payload.symbol, payload.current_price)
         sentiment_score = get_sentiment_score(payload.symbol)
         recommendation = get_recommendation(predicted, payload.current_price)
@@ -51,24 +68,30 @@ def predict_route(payload: PredictionRequest):
             "sentiment_score": sentiment_score,
             "recommendation": recommendation
         }
+
     except Exception as e:
+        print(f"[ERROR] /predict failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# ✅ Sentiment endpoint
+# 📈 Sentiment route
 @app.post("/sentiment")
-def sentiment_route(payload: SentimentRequest):
+async def sentiment_route(payload: SentimentRequest):
     try:
+        print(f"[ROUTE] /sentiment received: {payload}")
         score = get_sentiment_score(payload.symbol)
         return { "sentiment_score": score }
     except Exception as e:
+        print(f"[ERROR] /sentiment failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# ✅ Recommendation endpoint
+# 🧭 Recommendation route
 @app.post("/recommend")
-def recommend_route(payload: RecommendationRequest):
+async def recommend_route(payload: RecommendationRequest):
     try:
+        print(f"[ROUTE] /recommend received: {payload}")
         advice = get_recommendation(payload.predicted_price, payload.current_price)
         return { "recommendation": advice }
     except Exception as e:
+        print(f"[ERROR] /recommend failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
